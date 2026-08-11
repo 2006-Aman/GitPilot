@@ -16,6 +16,14 @@ export const authOptions: NextAuthOptions = {
       authorization: {
         params: { scope: "read:user user:email repo" },
       },
+      profile(profile) {
+        return {
+          id: profile.id.toString(),
+          name: profile.login || profile.name || "GitHub User",
+          email: profile.email || `${profile.id}+${profile.login}@users.noreply.github.com`,
+          image: profile.avatar_url,
+        };
+      },
     }),
   ],
   secret: process.env.NEXTAUTH_SECRET,
@@ -23,6 +31,13 @@ export const authOptions: NextAuthOptions = {
     strategy: "jwt",
   },
   callbacks: {
+    async signIn({ user, profile }) {
+      if (!user.email && profile && typeof profile === "object") {
+        const p = profile as Record<string, any>;
+        user.email = `${p.id || Date.now()}+${p.login || "user"}@users.noreply.github.com`;
+      }
+      return true;
+    },
     async jwt({ token, user, account, profile }) {
       if (user) {
         token.id = user.id;
