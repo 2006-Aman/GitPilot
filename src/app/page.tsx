@@ -40,7 +40,7 @@ export default function LandingPage() {
             <span className="text-xl font-bold">GitPilot</span>
           </div>
           <button
-            onClick={() => signIn("github", { callbackUrl: "/dashboard" }, { prompt: "consent" })}
+            onClick={() => signIn("github", { callbackUrl: "/dashboard" })}
             className="flex items-center gap-2 bg-accent hover:bg-accent-hover text-black font-medium px-5 py-2 rounded-lg transition-colors"
           >
             <GithubIcon className="w-5 h-5" />
@@ -61,7 +61,7 @@ export default function LandingPage() {
             place.
           </p>
           <button
-            onClick={() => signIn("github", { callbackUrl: "/dashboard" }, { prompt: "consent" })}
+            onClick={() => signIn("github", { callbackUrl: "/dashboard" })}
             className="inline-flex items-center gap-2 bg-accent hover:bg-accent-hover text-black font-semibold px-8 py-3 rounded-lg text-lg transition-colors"
           >
             <GithubIcon className="w-6 h-6" />
@@ -116,7 +116,7 @@ export default function LandingPage() {
               repositories from one place.
             </p>
             <button
-              onClick={() => signIn("github", { callbackUrl: "/dashboard" }, { prompt: "consent" })}
+              onClick={() => signIn("github", { callbackUrl: "/dashboard" })}
               className="inline-flex items-center gap-2 bg-accent hover:bg-accent-hover text-black font-semibold px-8 py-3 rounded-lg text-lg transition-colors"
             >
               <GithubIcon className="w-6 h-6" />

@@ -14,71 +14,55 @@ export const authOptions: NextAuthOptions = {
       clientSecret: process.env.GITHUB_CLIENT_SECRET || "",
       allowDangerousEmailAccountLinking: true,
       authorization: {
-        params: {
-          scope: "read:user user:email repo",
-          prompt: "consent",
-        },
-      },
-      profile(profile) {
-        return {
-          id: profile.id.toString(),
-          name: profile.login || profile.name || "GitHub User",
-          email: profile.email || `${profile.id}+${profile.login}@users.noreply.github.com`,
-          image: profile.avatar_url,
-        };
+        params: { scope: "read:user user:email repo" },
       },
     }),
   ],
   secret: process.env.NEXTAUTH_SECRET,
   session: {
-    strategy: "database",
+    strategy: "jwt",
   },
   callbacks: {
-    async session({ session, user }) {
-      if (session.user) {
-        session.user.id = user.id;
+    async jwt({ token, user, account, profile }) {
+      if (user) {
+        token.id = user.id;
       }
-      const client = await getClientPromise();
-      const db = client.db();
-      let userObjId: ObjectId | null = null;
-      try { userObjId = new ObjectId(user.id); } catch {}
-
-      const account = await db.collection("accounts").findOne({
-        $or: [
-          ...(userObjId ? [{ userId: userObjId }] : []),
-          { userId: user.id },
-        ],
-        provider: "github",
-      });
-
-      const githubId = account?.providerAccountId as string | undefined;
-      const githubUsername = user.name || "";
-
-      if (session.user) {
-        (session.user as Record<string, unknown>).githubId = githubId || "";
-        (session.user as Record<string, unknown>).githubUsername =
-          githubUsername;
+      if (account) {
+        token.accessToken = account.access_token;
+        token.githubId = account.providerAccountId;
       }
-
-      try {
-        await connectDB();
-        await User.findOneAndUpdate(
-          { githubId },
-          {
-            $set: {
-              githubId,
-              githubUsername,
-              name: user.name,
-              email: user.email,
-              image: user.image,
-            },
-          },
-          { upsert: true, new: true }
-        );
-      } catch {
-        /* non-blocking */
+      if (profile && typeof profile === "object" && "login" in profile) {
+        token.githubUsername = profile.login as string;
       }
+      return token;
+    },
+    async session({ session, token }) {
+      if (session.user && token) {
+        session.user.id = token.id as string;
+        (session.user as Record<string, unknown>).githubId = token.githubId || "";
+        (session.user as Record<string, unknown>).githubUsername = token.githubUsername || "";
 
+        if (token.githubId) {
+          try {
+            await connectDB();
+            await User.findOneAndUpdate(
+              { githubId: token.githubId as string },
+              {
+                $set: {
+                  githubId: token.githubId as string,
+                  githubUsername: (token.githubUsername as string) || "",
+                  name: session.user.name,
+                  email: session.user.email,
+                  image: session.user.image,
+                },
+              },
+              { upsert: true, new: true }
+            );
+          } catch {
+            /* non-blocking */
+          }
+        }
+      }
       return session;
     },
   },
