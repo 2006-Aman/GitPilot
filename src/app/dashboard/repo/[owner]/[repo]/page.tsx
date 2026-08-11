@@ -22,6 +22,7 @@ import {
   Eye,
   HardDrive,
   ChevronDown,
+  RefreshCw,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -112,6 +113,7 @@ export default function RepoDetailPage() {
   const [latestCommit, setLatestCommit] = useState<CommitInfo | null>(null);
   const [contributorsCount, setContributorsCount] = useState(0);
   const [treeSearch, setTreeSearch] = useState("");
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     if (!owner || !repo) return;
@@ -122,13 +124,14 @@ export default function RepoDetailPage() {
     setLoading(true);
     setError("");
     try {
+      const ts = Date.now();
       const [metaRes, treeRes, readmeRes, deployRes, commitsRes, ghRepoRes] = await Promise.all([
-        fetch(`/api/repos/sync`),
-        fetch(`/api/repos/${owner}/${repo}/tree?branch=main`),
-        fetch(`https://api.github.com/repos/${owner}/${repo}/readme`, { headers: { Accept: "application/vnd.github.v3.raw" } }),
-        fetch(`/api/repos/${owner}/${repo}/deployment`),
-        fetch(`https://api.github.com/repos/${owner}/${repo}/commits?per_page=1`, { headers: { Accept: "application/vnd.github.v3+json" } }),
-        fetch(`https://api.github.com/repos/${owner}/${repo}`, { headers: { Accept: "application/vnd.github.v3+json" } }),
+        fetch(`/api/repos/sync?t=${ts}`, { cache: "no-store" }),
+        fetch(`/api/repos/${owner}/${repo}/tree?branch=main&t=${ts}`, { cache: "no-store" }),
+        fetch(`https://api.github.com/repos/${owner}/${repo}/readme?t=${ts}`, { headers: { Accept: "application/vnd.github.v3.raw" }, cache: "no-store" }),
+        fetch(`/api/repos/${owner}/${repo}/deployment?t=${ts}`, { cache: "no-store" }),
+        fetch(`https://api.github.com/repos/${owner}/${repo}/commits?per_page=1&t=${ts}`, { headers: { Accept: "application/vnd.github.v3+json" }, cache: "no-store" }),
+        fetch(`https://api.github.com/repos/${owner}/${repo}?t=${ts}`, { headers: { Accept: "application/vnd.github.v3+json" }, cache: "no-store" }),
       ]);
 
       const metaData = await metaRes.json();
@@ -198,16 +201,30 @@ export default function RepoDetailPage() {
     }
   };
 
+  const handleRefreshRepo = async () => {
+    setRefreshing(true);
+    try {
+      await fetch(`/api/repos/sync?t=${Date.now()}`, { method: "POST", cache: "no-store" });
+      await fetchRepoData();
+      if (selectedFile) {
+        await loadFile(selectedFile);
+      }
+    } catch {} finally {
+      setRefreshing(false);
+    }
+  };
+
   const loadFile = async (path: string) => {
     setSelectedFile(path);
     setFileContent("");
     try {
-      const res = await fetch(`/api/repos/${owner}/${repo}/content?path=${encodeURIComponent(path)}`);
+      const ts = Date.now();
+      const res = await fetch(`/api/repos/${owner}/${repo}/content?path=${encodeURIComponent(path)}&t=${ts}`, { cache: "no-store" });
       if (res.ok) {
         const data = await res.json();
         if (data.type === "file") { setFileContent(data.content); setFileSize(data.size); setFileRawUrl(data.download_url || ""); }
       } else {
-        const fallbackRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${encodeURIComponent(path)}`, { headers: { Accept: "application/vnd.github.v3+json" } });
+        const fallbackRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${encodeURIComponent(path)}?t=${ts}`, { headers: { Accept: "application/vnd.github.v3+json" }, cache: "no-store" });
         if (fallbackRes.ok) {
           const data = await fallbackRes.json();
           if (data.type === "file" && data.content) { setFileContent(atob(data.content)); setFileSize(data.size); setFileRawUrl(data.download_url || ""); }
@@ -336,6 +353,14 @@ export default function RepoDetailPage() {
                 </div>
               </div>
               <div className="flex items-center gap-2">
+                <button
+                  onClick={handleRefreshRepo}
+                  disabled={refreshing}
+                  className="flex items-center gap-1.5 text-xs px-3 py-1.5 bg-accent/10 text-accent border border-accent/20 rounded-lg hover:bg-accent/20 transition-colors disabled:opacity-50"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? "animate-spin" : ""}`} />
+                  {refreshing ? "Syncing..." : "Sync Repo"}
+                </button>
                 {repoMeta.homepage && (
                   <a href={repoMeta.homepage} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-xs px-3 py-1.5 bg-accent/10 text-accent rounded-lg hover:bg-accent/20 transition-colors">
                     <Globe className="w-3.5 h-3.5" /> Website

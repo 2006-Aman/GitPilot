@@ -4,6 +4,9 @@ import { authOptions } from "@/lib/authOptions";
 import { getGithubToken } from "@/lib/getGithubToken";
 import { Octokit } from "@octokit/rest";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ owner: string; repo: string }> }

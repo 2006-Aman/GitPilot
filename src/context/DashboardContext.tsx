@@ -58,8 +58,8 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
 
   const fetchStats = async (force = false) => {
     try {
-      const url = force ? "/api/stats?refresh=true" : "/api/stats";
-      const res = await fetch(url);
+      const url = force ? `/api/stats?refresh=true&t=${Date.now()}` : `/api/stats?t=${Date.now()}`;
+      const res = await fetch(url, { cache: "no-store" });
       if (res.ok) {
         const data = await res.json();
         setStats(data);
@@ -72,13 +72,13 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
     if (sync) setSyncing(true);
     try {
       if (sync) {
-        const syncRes = await fetch("/api/repos/sync", { method: "POST" });
+        const syncRes = await fetch(`/api/repos/sync?t=${Date.now()}`, { method: "POST", cache: "no-store" });
         if (!syncRes.ok) {
           const errData = await syncRes.json();
           throw new Error(errData.error || "Sync failed");
         }
       }
-      const res = await fetch("/api/repos/sync", { method: "GET" });
+      const res = await fetch(`/api/repos/sync?t=${Date.now()}`, { method: "GET", cache: "no-store" });
       if (!res.ok) throw new Error("Failed to fetch repos");
       const data = await res.json();
       if (Array.isArray(data) && data.length === 0 && !sync) {
@@ -95,28 +95,28 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
 
   const fetchIssues = async () => {
     try {
-      const res = await fetch("/api/issues");
+      const res = await fetch(`/api/issues?t=${Date.now()}`, { cache: "no-store" });
       if (res.ok) setIssues(await res.json());
     } catch {}
   };
 
   const fetchPulls = async () => {
     try {
-      const res = await fetch("/api/pulls");
+      const res = await fetch(`/api/pulls?t=${Date.now()}`, { cache: "no-store" });
       if (res.ok) setPulls(await res.json());
     } catch {}
   };
 
   const fetchReviews = async () => {
     try {
-      const res = await fetch("/api/reviews");
+      const res = await fetch(`/api/reviews?t=${Date.now()}`, { cache: "no-store" });
       if (res.ok) setReviews(await res.json());
     } catch {}
   };
 
   const fetchLeaderboard = async () => {
     try {
-      const res = await fetch("/api/leaderboard");
+      const res = await fetch(`/api/leaderboard?t=${Date.now()}`, { cache: "no-store" });
       if (res.ok) setLeaderboard(await res.json());
     } catch {}
   };

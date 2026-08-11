@@ -1,13 +1,15 @@
 "use client";
 
 import { useSession, signOut } from "next-auth/react";
-import { Search, Bell, ChevronDown, Plus, Settings, User, CreditCard, LogOut, Code, FileText, Download } from "lucide-react";
+import { Search, Bell, ChevronDown, Plus, Settings, User, CreditCard, LogOut, Code, FileText, Download, RefreshCw } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import SearchBar from "./SearchBar";
+import { useDashboard } from "@/context/DashboardContext";
 
 export default function TopNav() {
   const { data: session } = useSession();
+  const { refreshAll, syncing } = useDashboard();
   const [showQuickActions, setShowQuickActions] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const quickActionsRef = useRef<HTMLDivElement>(null);
@@ -36,6 +38,16 @@ export default function TopNav() {
       </div>
 
       <div className="flex items-center gap-1.5 sm:gap-2">
+        <button
+          onClick={() => refreshAll()}
+          disabled={syncing}
+          title="Refresh GitHub Data"
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-[#9BA2B4] hover:text-[#E9EBF0] border border-[#232733] rounded-lg hover:bg-[#232733]/50 transition-colors disabled:opacity-50"
+        >
+          <RefreshCw className={`w-3.5 h-3.5 text-[#5FC9E8] ${syncing ? "animate-spin" : ""}`} />
+          <span className="hidden md:inline">{syncing ? "Syncing..." : "Sync GitHub"}</span>
+        </button>
+
         <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-[#9BA2B4] hover:text-[#E9EBF0] border border-[#232733] rounded-lg hover:bg-[#232733]/50 cursor-pointer transition-colors">
           <span>Workspace</span>
           <ChevronDown className="w-3.5 h-3.5 opacity-70" />

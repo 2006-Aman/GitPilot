@@ -5,6 +5,10 @@ import { getGithubToken } from "@/lib/getGithubToken";
 import { connectDB } from "@/lib/mongoose";
 import Repository from "@/models/Repository";
 import { Octokit } from "@octokit/rest";
+import { clearUserCache } from "@/lib/cache";
+
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 async function syncRepositories(userId: string) {
   const token = await getGithubToken(userId);
@@ -98,6 +102,7 @@ export async function POST() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    clearUserCache(session.user.id);
     const repos = await syncRepositories(session.user.id);
     if (!repos) {
       return NextResponse.json({ error: "GitHub token not found" }, { status: 401 });
