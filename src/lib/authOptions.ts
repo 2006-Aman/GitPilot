@@ -14,7 +14,10 @@ export const authOptions: NextAuthOptions = {
       clientSecret: process.env.GITHUB_CLIENT_SECRET || "",
       allowDangerousEmailAccountLinking: true,
       authorization: {
-        params: { scope: "read:user user:email repo" },
+        params: {
+          scope: "read:user user:email repo",
+          prompt: "consent",
+        },
       },
       profile(profile) {
         return {
