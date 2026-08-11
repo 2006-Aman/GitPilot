@@ -35,6 +35,12 @@ async function syncRepositories(userId: string) {
 
   await connectDB();
 
+  const activeGithubIds = allRepos.map((r) => r.id);
+  await Repository.deleteMany({
+    userId: userId,
+    githubRepoId: { $nin: activeGithubIds },
+  });
+
   for (const repo of allRepos) {
     await Repository.findOneAndUpdate(
       {
