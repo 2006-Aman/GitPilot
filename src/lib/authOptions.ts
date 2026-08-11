@@ -12,14 +12,15 @@ export const authOptions: NextAuthOptions = {
     GitHubProvider({
       clientId: process.env.GITHUB_CLIENT_ID || "",
       clientSecret: process.env.GITHUB_CLIENT_SECRET || "",
+      allowDangerousEmailAccountLinking: true,
       authorization: {
         params: { scope: "read:user user:email repo" },
       },
       profile(profile) {
         return {
           id: profile.id.toString(),
-          name: profile.login,
-          email: profile.email,
+          name: profile.login || profile.name || "GitHub User",
+          email: profile.email || `${profile.id}+${profile.login}@users.noreply.github.com`,
           image: profile.avatar_url,
         };
       },
@@ -36,8 +37,14 @@ export const authOptions: NextAuthOptions = {
       }
       const client = await getClientPromise();
       const db = client.db();
+      let userObjId: ObjectId | null = null;
+      try { userObjId = new ObjectId(user.id); } catch {}
+
       const account = await db.collection("accounts").findOne({
-        userId: new ObjectId(user.id),
+        $or: [
+          ...(userObjId ? [{ userId: userObjId }] : []),
+          { userId: user.id },
+        ],
         provider: "github",
       });
 
