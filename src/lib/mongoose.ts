@@ -33,5 +33,10 @@ export async function connectDB(): Promise<typeof mongoose> {
     });
   }
   cached.conn = await cached.promise;
+  try {
+    if (cached.conn.connection.db) {
+      await cached.conn.connection.db.collection("users").dropIndex("githubId_1");
+    }
+  } catch {}
   return cached.conn;
 }
