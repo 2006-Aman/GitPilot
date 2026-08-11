@@ -7,8 +7,17 @@ export async function getGithubToken(
   try {
     const client = await getClientPromise();
     const db = client.db();
+
+    let objectId: ObjectId | null = null;
+    try {
+      objectId = new ObjectId(userId);
+    } catch {}
+
     const account = await db.collection("accounts").findOne({
-      userId: new ObjectId(userId),
+      $or: [
+        ...(objectId ? [{ userId: objectId }] : []),
+        { userId: userId },
+      ],
       provider: "github",
     });
 
